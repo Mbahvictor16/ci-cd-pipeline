@@ -26,7 +26,7 @@ Built for *Software Engineering and DevOps (MMI330704)*, Coursework 2.
 |---|---|
 | Application | Plain Node.js HTTP server (no dependencies) |
 | Listens on | TCP **8081** |
-| Image | `mbahvictor/cw2-server:1.0` |
+| Image | `mbahvictor/ci-cd-pipeline:1.0` |
 | Source repo | `https://github.com/Mbahvictor16/devops_cw2.git` (branch `main`) |
 | CI server | Jenkins on the Build Server (port 8080) |
 | Runtime | Kubernetes (Minikube) on the Production Server, configured with Ansible |
@@ -147,16 +147,16 @@ CMD ["node", "server.js"]
 
 ### Build and run locally
 ```bash
-docker build -t mbahvictor/cw2-server:1.0 .
-docker run -d --name cw2 -p 8081:8081 mbahvictor/cw2-server:1.0
+docker build -t mbahvictor/ci-cd-pipeline:1.0 .
+docker run -d --name ci-cd -p 8081:8081 mbahvictor/ci-cd-pipeline:1.0
 curl localhost:8081
-docker rm -f cw2
+docker rm -f ci-cd
 ```
 
-### Manual publish (Task 1b)
+### Manual publish
 ```bash
 docker login
-docker push mbahvictor/cw2-server:1.0
+docker push mbahvictor/ci-cd-pipeline:1.0
 ```
 
 ---
@@ -169,7 +169,7 @@ Declarative pipeline, runs on `agent any`.
 
 | Variable | Value | Meaning |
 |---|---|---|
-| `IMAGE_NAME` | `mbahvictor/cw2-server` | DockerHub repository |
+| `IMAGE_NAME` | `mbahvictor/ci-cd-pipeline` | DockerHub repository |
 | `IMAGE_TAG` | `1.0` | Image tag (fixed) |
 | `PROD_SERVER` | `ubuntu@ec2-44-223-60-161.compute-1.amazonaws.com` | SSH target for deployment |
 | `PROD_PLAYBOOK` | `k8s.yml` | Playbook executed on the Production Server |
@@ -180,10 +180,10 @@ Declarative pipeline, runs on `agent any`.
 | # | Stage | What it does | Fails when |
 |---|---|---|---|
 | 1 | **Checkout Source Code** | Clones `main` from GitHub | Repo unreachable / branch missing |
-| 2 | **Build Docker Image** | `docker build -t mbahvictor/cw2-server:1.0 .` | Dockerfile error, Docker not accessible to the `jenkins` user |
+| 2 | **Build Docker Image** | `docker build -t mbahvictor/ci-cd-pipeline:1.0 .` | Dockerfile error, Docker not accessible to the `jenkins` user |
 | 3 | **Test Container Launch** | Starts container `test-container` (`-p 8081:8081`), waits 10 s, checks it appears in `docker ps`, runs `docker exec … echo` inside it, then stops and removes it | Container exits, port 8081 already used, stale `test-container` exists |
 | 4 | **Login to DockerHub** | `docker login` using the stored password via `--password-stdin` | Wrong credentials |
-| 5 | **Push to DockerHub** | `docker push mbahvictor/cw2-server:1.0` | Not logged in, no push rights to the `mbahvictor` namespace |
+| 5 | **Push to DockerHub** | `docker push mbahvictor/ci-cd-pipeline:1.0` | Not logged in, no push rights to the `mbahvictor` namespace |
 | 6 | **Deploy to Production via Ansible** | Uses `sshagent(['prod-ssh-key'])` to SSH into the Production Server and run `ansible-playbook k8s.yml` | SSH key missing/rejected, playbook error |
 
 A `post` block prints a success or failure message.
@@ -212,7 +212,7 @@ The Production Server is configured with **Ansible** (run locally on the server)
 |---|---|
 | kubectl playbook | Installs `kubectl` |
 | Minikube playbook | Installs and starts Minikube (Docker driver) |
-| `k8s.yml` | Deploys `mbahvictor/cw2-server` from DockerHub, creates a NodePort Service, sets replicas for rolling updates; run by Jenkins on every deployment |
+| `k8s.yml` | Deploys `mbahvictor/ci-cd-pipeline` from DockerHub, creates a NodePort Service, sets replicas for rolling updates; run by Jenkins on every deployment |
 
 > The playbooks were not included with the files used to write this document. **Paste their contents here** to complete this section, for example:
 >
